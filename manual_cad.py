@@ -18,6 +18,11 @@ class WorkstationConfig(object):
     SideTheta = 45
     TopTheta = 30
 
+    # hole
+    HoleX = 10
+    HoleZ = 10
+    HoleRadius = 3
+
 
 def normalize_array(original_array: np.array) -> np.array:
     return original_array / np.sqrt((original_array ** 2).sum())
@@ -46,6 +51,9 @@ class Plane(object):
         new_normal = r.apply(normal)
         new_d = np.dot(new_normal, point)
         return Plane(new_normal[0], new_normal[1], new_normal[2], new_d)
+
+    def get_point_with_xz(self, x: float, z: float) -> np.array:
+        return np.array([x, (self.d - self.a * x - self.c * z) / self.b, z])
 
 
 class Polygon(object):
@@ -89,7 +97,8 @@ class Workstation(object):
     def __init__(
         self, bottom_board: Polygon, top_board: Polygon, left_board: Polygon,
         right_board: Polygon, front_left_board: Polygon, front_board: Polygon,
-        front_right_board: Polygon, front_top_board: Polygon
+        front_right_board: Polygon, front_top_board: Polygon, left_hole_center: np.array,
+        right_hole_center: np.array
     ):
         self.bottom_board = bottom_board
         self.top_board = top_board
@@ -99,6 +108,29 @@ class Workstation(object):
         self.front_board = front_board
         self.front_right_board = front_right_board
         self.front_top_board = front_top_board
+        self.left_hole_center = left_hole_center
+        self.right_hole_center = right_hole_center
+
+    def print(self):
+        self.bottom_board.print()
+        self.top_board.print()
+
+        self.left_board.print()
+        self.right_board.print()
+
+        self.front_left_board.print()
+        self.front_board.print()
+        self.front_right_board.print()
+
+        self.front_top_board.print()
+
+        indent = " " * 12
+        l = self.left_hole_center / 10.0
+        r = self.right_hole_center / 10.0
+        print(indent + "# left_hole")
+        print(indent + f"([{l[0]}, {l[1]}, {l[2]}], {WorkstationConfig.HoleRadius / 10.0}, PINK),")
+        print(indent + "# right")
+        print(indent + f"([{r[0]}, {r[1]}, {r[2]}], {WorkstationConfig.HoleRadius / 10.0}, PINK),")
 
 
 def solve_all_polygon():
@@ -178,9 +210,17 @@ def solve_all_polygon():
     front_board.add_existed_point(right_bottom_of_front_board)
     front_board.add_existed_point(front_right_board.points[2])
     front_board.add_existed_point(front_left_board.points[2])
+
+    # Two holes
+    left_hole_center = front_left.get_point_with_xz(WorkstationConfig.HoleX, WorkstationConfig.HoleZ)
+    right_hole_center = front_right.get_point_with_xz(WorkstationConfig.HoleX, WorkstationConfig.HoleZ)
     # Done all
 
-    return Workstation(bottom_board, top_board, left_board, right_board, front_left_board, front_board, front_right_board, front_top_board)
+    return Workstation(
+        bottom_board, top_board, left_board, right_board, front_left_board,
+        front_board, front_right_board, front_top_board, left_hole_center,
+        right_hole_center
+    )
 
 
 def main():
@@ -189,14 +229,4 @@ def main():
 
 if __name__ == "__main__":
     w = main()
-    w.bottom_board.print()
-    w.top_board.print()
-
-    w.left_board.print()
-    w.right_board.print()
-
-    w.front_left_board.print()
-    w.front_board.print()
-    w.front_right_board.print()
-
-    w.front_top_board.print()
+    w.print()
